@@ -188,30 +188,6 @@ write.table(stem_activity %>% rename(Gene = X1), file = 'stem_activity.txt',row.
 
 
 
-# height_based hierarchy --------------------------------------------------
-
-
-
-# as_tbl_graph(core_net)  %>% 
-#   mutate(out_degree = centrality_degree(mode = 'out', loops = TRUE)) %>% 
-#   mutate(in_degree = centrality_degree(mode = 'in', loops = TRUE)) %>% 
-#   mutate(height = (out_degree - in_degree )/ (out_degree + in_degree)) %>% 
-#   as_tibble() %>% 
-#   left_join(TF_hierarchy_bottom_up) %>% 
-#   mutate(level = factor(level)) %>% 
-# ggplot(aes(level, height))+geom_boxplot()+theme_bw()
-# 
-# 
-# 
-# 
-# as_tbl_graph(network_prior)  %>% 
-#   mutate(out_degree = centrality_degree(mode = 'out', loops = TRUE)) %>% 
-#   mutate(in_degree = centrality_degree(mode = 'in', loops = TRUE)) %>% 
-#   mutate(height = (out_degree - in_degree )/ (out_degree + in_degree)) %>% 
-#   as_tibble() %>% 
-#   left_join(TF_hierarchy_bottom_up) %>% 
-#   mutate(level = factor(level)) %>% 
-#   ggplot(aes(level, height))+geom_boxplot()+theme_bw()
 
 library(tidygraph)
 TF_hierarchy <- 
@@ -272,7 +248,7 @@ fig_5_2 <- drought %>%
   )+
   gghighlight::gghighlight(label_key = Num , label_params = list(size = 8))+
   theme(
-    axis.text.y=element_blank(),
+    #axis.text.y=element_blank(),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
   theme(aspect.ratio=1/1)+
@@ -317,7 +293,7 @@ drought %>%
     legend.text = element_text(color = 'black', size = 20)
   )+
   theme(
-    axis.text.y=element_blank(),
+    #axis.text.y=element_blank(),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
   annotate(
@@ -355,21 +331,22 @@ mycolor <- sample(mycolor, length(mycolor))
 graph <- graph_from_data_frame(core_net,directed = TRUE, vertices = TF_hierarchy %>% arrange(desc(level)))
 
 
-fig_5_1 <- ggraph(graph, layout="linear") + 
+fig_5_1 <-
+  ggraph(graph, layout="linear") + 
   geom_edge_arc(edge_colour="black", edge_alpha=0.2, edge_width=0.3, fold=TRUE) +
   geom_node_point(aes(size=0.01, color=as.factor(level), fill=level), alpha=0.5) +
   scale_size_continuous(range=c(0.5,8)) +
   scale_color_manual(values= c('#8FBCBB','#EBCB8B','#81A1C1','#D08770')) +
-  geom_node_text(aes(label= ''), angle=65, hjust=1, nudge_y = -1.1, size=2) +
+  geom_node_text(aes(label= ''), angle=65, hjust=1, nudge_y = -1.1, size=2) + 
   theme_void() +
   theme(
     legend.position="none",
-    plot.margin=unit(c(0,0,0.4,0), "null"),
-    panel.spacing=unit(c(0,0,3.4,0), "null")
+  #   plot.margin=unit(c(0,0,0.4,0), "null"),
+  #   panel.spacing=unit(c(0,0,3.4,0), "null")
   ) +
   expand_limits(x = c(-1.2, 1.2), y = c(-5.6, 1.2)) +
   theme(aspect.ratio = 2/5)
-
+#ggsave('test2.pdf', width = 5, height = 2)
 
 
 
@@ -384,7 +361,7 @@ fig_5_1 <- ggraph(graph, layout="linear") +
 
 
 
-# continuously increase ---------------------------------------------------
+# continuously increase 
 
 
 fig_5_4 <- drought %>% 
@@ -424,7 +401,7 @@ fig_5_4 <- drought %>%
     axis.text.y=element_blank(),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
-  theme(aspect.ratio = 1/1)+
+  #theme(aspect.ratio = 1/1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank())
   
@@ -460,7 +437,7 @@ fig_5_4 <- drought %>%
 
 
 
-# first wave driver -------------------------------------------------------
+# first wave driver 
 
 fig_5_6 <- drought %>% 
   mutate(cor = ifelse(is.na(cor) == TRUE, 0, cor)) %>% 
@@ -491,7 +468,7 @@ fig_5_6 <- drought %>%
     axis.title.y = element_blank(),
     legend.text = element_text(color = 'black', size = 15)
   )+
-  gghighlight::gghighlight(label_key = from, label_params = list(size = 7))+#, MINUTES %in% 60:90)+
+  gghighlight::gghighlight(label_key = from, label_params = list(size = 4))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_blank(),
     axis.text.x = element_blank(),
@@ -516,7 +493,7 @@ fig_5_6 <- drought %>%
 c <- igraph::all_simple_paths(graph, from = 'LOC_Os04g48070', to = 'LOC_Os02g32590', cutoff = 50)
 
 
-# second wave driver ------------------------------------------------------
+# second wave driver 
 
 
 
@@ -530,7 +507,7 @@ fig_5_7 <- drought %>%
                      'LOC_Os08g43550'
   )) %>% 
   left_join(TF_hierarchy, by = c('from'= 'name')) %>% 
-  mutate(from = ifelse(from == 'LOC_Os03g12350', 'PR21', 'GL1A')) %>% 
+  mutate(from = ifelse(from == 'LOC_Os03g12350', 'RR21', 'GL1A')) %>% 
   ggplot(aes(MINUTES, mean, color = level, group = from))+ 
   geom_line(size = 1.5)+
   geom_point(size = 2)+
@@ -546,7 +523,7 @@ fig_5_7 <- drought %>%
     axis.title.y = element_blank(),
     legend.text = element_text(color = 'black', size = 15)
   )+
-  gghighlight::gghighlight(label_key = from, label_params = list(size = 7))+#, MINUTES %in% 60:90)+
+  gghighlight::gghighlight(label_key = from, label_params = list(size = 4))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_blank(),
     axis.text.x = element_blank(),
@@ -584,7 +561,7 @@ d %>% as_tibble() %>%
 
 
 
-# all rounder driver ------------------------------------------------------
+# all rounder driver 
 
 
 fig_5_5 <- drought %>% 
@@ -601,7 +578,6 @@ fig_5_5 <- drought %>%
                      'LOC_Os09g29460',
                      'LOC_Os02g43330', 
                      'LOC_Os08g36790')) %>% 
-  #'LOC_Os10g01470',  
   left_join(TF_hierarchy, by = c('from'= 'name')) %>% 
   filter(is.na(level) == FALSE) %>% 
   ggplot(aes(MINUTES, mean, group = from, color = level))+ 
@@ -623,7 +599,7 @@ fig_5_5 <- drought %>%
     axis.text.y=element_blank(),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
-  theme(aspect.ratio = 1/1)+
+  #theme(aspect.ratio = 1/1)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
           panel.background = element_blank())
 
@@ -730,21 +706,6 @@ write.csv(aggregate, file = 'GO_hierarchy_drought_response.csv')
 
 
 
-
-
-drought %>% 
-  mutate(cor = ifelse(is.na(cor) == TRUE, 0, cor)) %>% 
-  mutate(cor = abs(cor)) %>%  
-  group_by(MINUTES, from) %>% 
-  summarise(mean = mean(cor), n = n()) %>% 
-  filter(n > 2) %>% 
-  filter(from %in% c('LOC_Os10g01470', 
-                     'LOC_Os02g32590',
-                     'LOC_Os07g48596',
-                     'LOC_Os04g48070'
-  )) %>% 
-  left_join(TF_hierarchy, by = c('from'= 'name')) 
-
 # Fig  --------------------------------------------------------------------
 
 
@@ -758,7 +719,7 @@ library(patchwork)
 
 
 
-p2 <- fig_5_3 + inset_element(fig_5_7, left = 0.68, bottom = 0.0, right = 1, top = 0.35)+inset_element(fig_5_6, left = 0, bottom = 0.65, right = 0.31, top = 1.00)
+p2 <- fig_5_3 + inset_element(fig_5_7, left = 0.60, bottom = 0.01, right = 0.99, top = 0.35)+inset_element(fig_5_6, left = 0.01, bottom = 0.64, right = 0.312, top = 0.99)
 
 
 layout <- '
@@ -782,8 +743,8 @@ ggsave(wrap_plots(A = fig_5_1,
                   tag_level = 'new'), filename = 'main_fig_5.pdf', height = 20)
 
 
-
-
+fig_5_1 / (fig_5_2 + p2)
+ggsave('test.pdf', width = 20, height = 20)
 
 
 
