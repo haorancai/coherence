@@ -2,12 +2,12 @@
 library(tidygraph)  
 library(tidyverse)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-RNA_seq_summary_Experiment_ID <- read_table2("~/Dropbox (MIT)/Work/Research/Trial/Project03 Network_and_natural_variance_and_sponteanous mutation_connectivity_and_constraints/Rice/ERGIN/RNA-seq summary_Experiment_ID.txt", skip=  6) 
+RNA_seq_summary_Experiment_ID <- read_table2("../Data/RNA-seq summary_Experiment_ID.txt", skip=  6) 
 RNA_seq_summary_Experiment_ID <- RNA_seq_summary_Experiment_ID %>% filter(is.na(MINUTES) == FALSE)         
 
 
 
-network_prior <- read_delim("network_prior.txt", 
+network_prior <- read_delim("../Data/network_prior.txt", 
                             "\t", escape_double = FALSE, col_names = FALSE, 
                             trim_ws = TRUE)
 
@@ -25,7 +25,7 @@ core_net<- network_prior %>%
 # Get TF activity ---------------------------------------------------------
 
 
-load('rice_tidy_RNA_seq.rdata')
+load('../Data/rice_tidy_RNA_seq.rdata')
 
 
 
@@ -44,7 +44,6 @@ df <- RNA_seq_summary_Experiment_ID %>%
   unique() %>% 
   mutate(prior = map(CLASS, ~network_prior)) %>%
   unnest(prior) %>%
-  #filter(X1 == gene_name) %>% 
   left_join(subset, by = c('from' = 'gene', 'CLASS' = 'CLASS', 'MINUTES' = 'MINUTES')) %>%
   dplyr::rename(regulator_value = value) %>% 
   left_join(subset, by = c('to' = 'gene', 'CLASS' = 'CLASS', 'MINUTES' = 'MINUTES')) %>%
@@ -54,19 +53,16 @@ df <- RNA_seq_summary_Experiment_ID %>%
 
 df <- df %>%
   ungroup() %>% 
-  #sample_n(5) %>% 
   rowwise() %>% 
   mutate(cor = cor(regulator_value %>% 
-                     #unnest(regulator_value_wet) %>% 
                      pull(),
                    target_value %>% 
-                     #unnest(target_value_wet) %>% 
                      pull(), use = 'everything',method = 'pearson')) 
 
 
 
 drought <- df 
-load("drought_pop_over_time.rdata")
+
 
 
 
@@ -84,7 +80,6 @@ df <- RNA_seq_summary_Experiment_ID %>%
   unique() %>% 
   mutate(prior = map(CLASS, ~network_prior)) %>%
   unnest(prior) %>%
-  #filter(X1 == gene_name) %>% 
   left_join(subset, by = c('from' = 'gene', 'CLASS' = 'CLASS', 'MINUTES' = 'MINUTES')) %>%
   dplyr::rename(regulator_value = value) %>% 
   left_join(subset, by = c('to' = 'gene', 'CLASS' = 'CLASS', 'MINUTES' = 'MINUTES')) %>%
@@ -94,13 +89,10 @@ df <- RNA_seq_summary_Experiment_ID %>%
 
 df <- df %>%
   ungroup() %>% 
-  #sample_n(5) %>% 
   rowwise() %>% 
   mutate(cor = cor(regulator_value %>% 
-                     #unnest(regulator_value_wet) %>% 
                      pull(),
                    target_value %>% 
-                     #unnest(target_value_wet) %>% 
                      pull(), use = 'everything',method = 'pearson')) 
 
 
@@ -127,9 +119,6 @@ pair_t <- control %>%
               summarise(mean_drought = mean(cor)), by = c('MINUTES' = 'MINUTES', "from" = 'from')) %>% 
   ungroup() %>% 
   select(-MINUTES) %>% 
-  #mutate(difference = mean_drought - mean_control) %>% 
-  #select(-mean_drought, -mean_control) %>% 
-  #nest(difference = difference) %>% 
   nest(control = mean_control, drought = mean_drought) %>% 
   rowwise() %>% 
   mutate(pair_t = list(t.test(control$mean_control, drought$mean_drought, paired = TRUE, alternative = 'less')$p.value))
@@ -156,11 +145,9 @@ level_2 <- subset(core_net, to %in% level_1$to) %>%
 level_3 <- subset(core_net, to %in% level_2$from) %>% 
   select(from) %>% 
   unique() %>% 
-  #filter() %>% 
   filter(!(from %in% level_2$from | from %in% level_1$to))
 
 level_4 <- subset(core_net, to %in% level_3$from) %>% 
-  #filter( !(from %in% level_1$to & from %in% level_2$from) ) %>% 
   select(from) %>% 
   unique() %>% 
   filter(!(from %in% level_2$from | from %in% level_1$to | from %in% level_3$from))
@@ -186,10 +173,7 @@ stem_activity<-  drought %>%
   summarise(mean = mean(cor), n = n()) %>% 
   filter(n > 2) %>% 
   left_join(TF_hierarchy, by = c('X1' = 'name')) %>% 
-  #left_join(TF_hierarchy_top_down %>% rename(level_top_down = level), by = c('X1' = 'name')) %>% 
   ungroup() %>% 
-  #left_join(DE %>% select(name) %>% unique() %>% mutate(DE = 1), by = c('X1' = 'name')) %>% 
-  #filter(is.na(out_degree) == FALSE) %>% 
   left_join(
     pair_t %>% mutate(p.value = as.numeric(pair_t))) %>% 
   filter(p.value < 0.05) %>% 
@@ -243,13 +227,6 @@ TF_hierarchy <-
 
 
 
-# 
-# TF_hierarchy <- TF_hierarchy %>% 
-#   mutate(height = case_when(height == 1 ~ 4,
-#                             height <1 & height > 0 ~ 3,
-#                             height <=0 & height > -1 ~ 2,
-#                             height == -1 ~ 1)) 
-# 
 
 
 TF_hierarchy <- TF_hierarchy %>% 
@@ -257,23 +234,6 @@ TF_hierarchy <- TF_hierarchy %>%
                             height <1 & height >0~ 3,
                             height < 0.000001 & height >-1 ~ 2,
                             height == -1 ~ 1))  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -305,11 +265,7 @@ fig_5_2 <- drought %>%
   ylab('Mean Expression Level')+
   geom_point(size = 2.5)+
   scale_color_manual(values= c('#8FBCBB','#EBCB8B','#81A1C1','#D08770')) +
-  #scale_color_manual(values= c('#8FBCBB','#88C0D0','#81A1C1','#5E81AC')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 12)
@@ -337,10 +293,7 @@ drought %>%
   filter(n > 2) %>% 
   left_join(TF_hierarchy ,by = c('from' = 'name')) %>% 
   filter(is.na(level) == FALSE) %>% 
-  #left_join(TF_hierarchy_top_down %>% rename(level_top_down = level), by = c('X1' = 'name')) %>% 
   ungroup() %>% 
-  #left_join(DE %>% select(name) %>% unique() %>% mutate(DE = 1), by = c('X1' = 'name')) %>% 
-  #filter(is.na(out_degree) == FALSE) %>% 
   left_join(
     pair_t %>% mutate(p.value = as.numeric(pair_t))) %>% 
   filter(p.value < 0.05) %>%
@@ -348,7 +301,6 @@ drought %>%
   summarise(mean_activity = mean(mean), n = n()) %>%
   mutate(Num = as.factor(paste(n, 'TFs'))) %>% 
   mutate(Level = as.factor(level)) %>% 
-  #mutate(Level = fct_relevel('4','3','2','1')) %>%
   ggplot(aes(MINUTES, mean_activity, color = Level))+ 
   geom_line(size = 1.5)+
   geom_point(size = 2)+
@@ -359,23 +311,15 @@ drought %>%
   xlab('Time (min)')+
   ylab('TF Activity')+
   geom_point(size = 2)+
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 20)
   )+
-  #gghighlight::gghighlight(label_key = Level, label_params = list(size = 8))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_blank(),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
-  #ylim(0.3,0.6)+
-  #xlim(15,135)+
-  #geom_curve(aes(x = 1, y = 1, xend =2, yend =2, colour = "curve"))+
-  #annotate("text", x = 4, y = 25, label = "Some text")
   annotate(
     geom = "curve", x = 90, y = 0.55, xend = 100, yend = 0.42, 
     curvature = .4, arrow = arrow(length = unit(3, "mm"))
@@ -388,7 +332,6 @@ drought %>%
   annotate(geom = "text", x = 51, y = 0.63, label = "First Wave", hjust = "left",size = 6)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank())
-  #theme(aspect.ratio=1/1)
 
 
 
@@ -453,14 +396,10 @@ fig_5_4 <- drought %>%
   filter(from %in% c('LOC_Os01g09640', 
                      'LOC_Os03g12860',
                      'LOC_Os04g48070',
-                     #'LOC_Os03g12350',
                      "LOC_Os05g34050",
                      'LOC_Os09g38340',
                      'LOC_Os12g03050',
-                     #'LOC_Os08g43550', 
-                     #'LOC_Os06g10880',
                      'LOC_Os09g38340',
-                     #'LOC_Os03g12350',
                      'LOC_Os03g20550',
                      'LOC_OS01G66120'
   )) %>% 
@@ -476,15 +415,11 @@ fig_5_4 <- drought %>%
   ylab('TF Activity')+
   geom_point(size = 2)+
   scale_color_manual(values= c('#EBCB8B','#81A1C1','#D08770')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 15)
   )+
-  #gghighlight::gghighlight(label_key = level, label_params = list(size = 6))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_blank(),
     axis.text.x = element_text(size = 12),
@@ -510,9 +445,7 @@ fig_5_4 <- drought %>%
 # 1.00	LOC_OS01G09640	ID_0	0.00	0.35	0.17	0.41	0.21	0.57	0.79	0.84	1.16
 # 1.00	LOC_OS03G12350	ID_26	0.00	0.62	0.20	0.73	0.74	0.57	1.20	0.94	1.24
 # 1.00	LOC_OS09G38340	ID_79	0.00	-0.12	0.46	0.57	0.91	1.09	1.11	1.00	1.14
-# 
 # 1.00	LOC_OS08G43550	ID_70	0.00	-0.36	-0.55	-0.20	-0.07	-0.18	0.42	-0.02	0.54
-# 
 
 
 
@@ -553,10 +486,7 @@ fig_5_6 <- drought %>%
   ylab('TF Activity')+
   geom_point(size = 2)+
   scale_color_manual(values= c('#8FBCBB','#D08770')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     legend.text = element_text(color = 'black', size = 15)
@@ -573,7 +503,7 @@ fig_5_6 <- drought %>%
 
 
 
-# 
+
 # 1.00	LOC_OS10G01470	ID_80	0.00	0.02	-0.63	0.31	0.21	0.56	0.50	0.39	0.49
 # 1.00	LOC_OS02G32590	ID_14	0.00	-0.37	0.40	0.56	0.69	0.44	0.50	0.28	0.45
 # 1.00	LOC_OS02G47660	ID_20	0.00	0.33	0.48	1.04	0.86	1.12	0.97	0.78	0.80
@@ -611,10 +541,7 @@ fig_5_7 <- drought %>%
   ylab('TF Activity')+
   geom_point(size = 2)+
   scale_color_manual(values= c('#8FBCBB','#D08770')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_blank(),
     axis.title.y = element_blank(),
     legend.text = element_text(color = 'black', size = 15)
@@ -631,7 +558,7 @@ fig_5_7 <- drought %>%
 
 # 1.00	LOC_OS03G12350	ID_26	0.00	0.62	0.20	0.73	0.74	0.57	1.20	0.94	1.24
 # 1.00	LOC_OS08G43550	ID_70	0.00	-0.36	-0.55	-0.20	-0.07	-0.18	0.42	-0.02	0.54
-# 
+
 
 #d <-distances(graph)
 
@@ -687,15 +614,11 @@ fig_5_5 <- drought %>%
   ylab('TF Activity')+
   geom_point(size = 2)+
   scale_color_manual(values= c('#8FBCBB','#EBCB8B','#81A1C1','#D08770')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 15)
   )+
-  #gghighlight::gghighlight(label_key = level, label_params = list(size = 6))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_blank(),
     axis.text.x = element_text(size = 12),
@@ -706,7 +629,7 @@ fig_5_5 <- drought %>%
 
 # 1.00	LOC_OS05G49420	ID_51	0.00	1.26	1.70	1.96	1.06	1.88	1.98	1.28	1.82
 # 1.00	LOC_OS01G46970	ID_2	0.00	1.04	1.32	1.61	0.66	1.43	1.56	0.85	1.50
-# 
+
 # 1.00	LOC_OS09G29460	ID_76	0.00	0.24	-0.18	0.46	0.26	0.83	1.03	0.47	0.60
 # 1.00	LOC_OS08G36790	ID_66	0.00	-0.19	0.24	0.81	0.56	0.99	0.90	0.70	0.48
 
@@ -898,9 +821,6 @@ fig_5_suppl_1 <- drought %>%
   rowwise() %>% 
   mutate(mean_count = mean(regulator_value$value)) %>% 
   select(-regulator_value) %>% 
-  # left_join(
-  #   pair_t %>% mutate(p.value = as.numeric(pair_t))) %>% 
-  # filter(p.value < 0.05) %>%
   left_join(TF_hierarchy,by = c('from' = 'name')) %>% 
   filter(is.na(level) == FALSE) %>% 
   ungroup() %>% 
@@ -916,11 +836,7 @@ fig_5_suppl_1 <- drought %>%
   ylab('Mean Expression Level')+
   geom_point(size = 2.5)+
   scale_color_manual(values= c('#8FBCBB','#EBCB8B','#81A1C1','#D08770')) +
-  #scale_color_manual(values= c('#8FBCBB','#88C0D0','#81A1C1','#5E81AC')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 12)
@@ -948,18 +864,11 @@ fig_5_suppl_2 <-
   filter(n > 2) %>% 
   left_join(TF_hierarchy ,by = c('from' = 'name')) %>% 
   filter(is.na(level) == FALSE) %>% 
-  #left_join(TF_hierarchy_top_down %>% rename(level_top_down = level), by = c('X1' = 'name')) %>% 
   ungroup() %>% 
-  #left_join(DE %>% select(name) %>% unique() %>% mutate(DE = 1), by = c('X1' = 'name')) %>% 
-  #filter(is.na(out_degree) == FALSE) %>% 
-  # left_join(
-  #   pair_t %>% mutate(p.value = as.numeric(pair_t))) %>% 
-  # filter(p.value < 0.05) %>%
   group_by(MINUTES, level) %>% 
   summarise(mean_activity = mean(mean), n = n()) %>%
   mutate(Num = as.factor(paste(n, 'TFs'))) %>% 
   mutate(Level = as.factor(level)) %>% 
-  #mutate(Level = fct_relevel('4','3','2','1')) %>%
   ggplot(aes(MINUTES, mean_activity, color = Level))+ 
   geom_line(size = 1.5)+
   geom_point(size = 2)+
@@ -970,36 +879,17 @@ fig_5_suppl_2 <-
   xlab('Time (min)')+
   ylab('TF Activity')+
   geom_point(size = 2)+
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 20)
   )+
-  #gghighlight::gghighlight(label_key = Level, label_params = list(size = 8))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_text(size = 12),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
-  #ylim(0.3,0.6)+
-  #xlim(15,135)+
-  #geom_curve(aes(x = 1, y = 1, xend =2, yend =2, colour = "curve"))+
-  #annotate("text", x = 4, y = 25, label = "Some text")
-  # annotate(
-  #   geom = "curve", x = 90, y = 0.55, xend = 100, yend = 0.42, 
-  #   curvature = .4, arrow = arrow(length = unit(3, "mm"))
-  # ) +
-  # annotate(geom = "text", x = 103, y = 0.42, label = "Second Wave", hjust = "left",size = 6)+
-  # annotate(
-  #   geom = "curve", x = 60, y = 0.59, xend = 50, yend = 0.62, 
-  #   curvature = .4, arrow = arrow(length = unit(3, "mm"))
-  # ) +
-  # annotate(geom = "text", x = 51, y = 0.63, label = "First Wave", hjust = "left",size = 6)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank())
-#theme(aspect.ratio=1/1)
 
 
 
@@ -1053,11 +943,7 @@ fig_5_suppl_3 <- drought %>%
   ylab('Mean Expression Level')+
   geom_point(size = 2.5)+
   scale_color_manual(values= c('#8FBCBB','#EBCB8B','#81A1C1','#D08770')) +
-  #scale_color_manual(values= c('#8FBCBB','#88C0D0','#81A1C1','#5E81AC')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 12)
@@ -1085,10 +971,7 @@ fig_5_suppl_4 <-
   filter(n > 2) %>% 
   left_join(TF_hierarchy ,by = c('from' = 'name')) %>% 
   filter(is.na(height) == FALSE) %>% 
-  #left_join(TF_hierarchy_top_down %>% rename(level_top_down = level), by = c('X1' = 'name')) %>% 
   ungroup() %>% 
-  #left_join(DE %>% select(name) %>% unique() %>% mutate(DE = 1), by = c('X1' = 'name')) %>% 
-  #filter(is.na(out_degree) == FALSE) %>% 
   left_join(
     pair_t %>% mutate(p.value = as.numeric(pair_t))) %>%
   filter(p.value < 0.05) %>%
@@ -1096,7 +979,6 @@ fig_5_suppl_4 <-
   summarise(mean_activity = mean(mean), n = n()) %>%
   mutate(Num = as.factor(paste(n, 'TFs'))) %>% 
   mutate(Level = as.factor(height)) %>% 
-  #mutate(Level = fct_relevel('4','3','2','1')) %>%
   ggplot(aes(MINUTES, mean_activity, color = Level))+ 
   geom_line(size = 1.5)+
   geom_point(size = 2)+
@@ -1107,33 +989,15 @@ fig_5_suppl_4 <-
   xlab('Time (min)')+
   ylab('TF Activity')+
   geom_point(size = 2)+
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 20)
   )+
-  #gghighlight::gghighlight(label_key = Level, label_params = list(size = 8))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_text(size = 12),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
-  #ylim(0.3,0.6)+
-  #xlim(15,135)+
-  #geom_curve(aes(x = 1, y = 1, xend =2, yend =2, colour = "curve"))+
-  #annotate("text", x = 4, y = 25, label = "Some text")
-  # annotate(
-  #   geom = "curve", x = 90, y = 0.55, xend = 100, yend = 0.42, 
-  #   curvature = .4, arrow = arrow(length = unit(3, "mm"))
-  # ) +
-  # annotate(geom = "text", x = 103, y = 0.42, label = "Second Wave", hjust = "left",size = 6)+
-  # annotate(
-  #   geom = "curve", x = 60, y = 0.59, xend = 50, yend = 0.62, 
-#   curvature = .4, arrow = arrow(length = unit(3, "mm"))
-# ) +
-# annotate(geom = "text", x = 51, y = 0.63, label = "First Wave", hjust = "left",size = 6)+
 theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
       panel.background = element_blank())+
 theme(aspect.ratio=1/1)
@@ -1159,9 +1023,6 @@ fig_5_suppl_5 <- drought %>%
   rowwise() %>% 
   mutate(mean_count = mean(regulator_value$value)) %>% 
   select(-regulator_value) %>% 
-  # left_join(
-  #   pair_t %>% mutate(p.value = as.numeric(pair_t))) %>% 
-  # filter(p.value < 0.05) %>%
   left_join(TF_hierarchy,by = c('from' = 'name')) %>% 
   filter(is.na(height) == FALSE) %>% 
   ungroup() %>% 
@@ -1177,11 +1038,7 @@ fig_5_suppl_5 <- drought %>%
   ylab('Mean Expression Level')+
   geom_point(size = 2.5)+
   scale_color_manual(values= c('#8FBCBB','#EBCB8B','#81A1C1','#D08770')) +
-  #scale_color_manual(values= c('#8FBCBB','#88C0D0','#81A1C1','#5E81AC')) +
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 12)
@@ -1209,18 +1066,11 @@ fig_5_suppl_6 <-
   filter(n > 2) %>% 
   left_join(TF_hierarchy ,by = c('from' = 'name')) %>% 
   filter(is.na(height) == FALSE) %>% 
-  #left_join(TF_hierarchy_top_down %>% rename(level_top_down = level), by = c('X1' = 'name')) %>% 
   ungroup() %>% 
-  #left_join(DE %>% select(name) %>% unique() %>% mutate(DE = 1), by = c('X1' = 'name')) %>% 
-  #filter(is.na(out_degree) == FALSE) %>% 
-  # left_join(
-  #   pair_t %>% mutate(p.value = as.numeric(pair_t))) %>% 
-  # filter(p.value < 0.05) %>%
   group_by(MINUTES, height) %>% 
   summarise(mean_activity = mean(mean), n = n()) %>%
   mutate(Num = as.factor(paste(n, 'TFs'))) %>% 
   mutate(Level = as.factor(height)) %>% 
-  #mutate(Level = fct_relevel('4','3','2','1')) %>%
   ggplot(aes(MINUTES, mean_activity, color = Level))+ 
   geom_line(size = 1.5)+
   geom_point(size = 2)+
@@ -1231,33 +1081,15 @@ fig_5_suppl_6 <-
   xlab('Time (min)')+
   ylab('TF Activity')+
   geom_point(size = 2)+
-  #scale_fill_manual(values=c("#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control", 'Drought',"Heat"))+
-  #scale_color_manual(values=c( "#81A1C1", "#A3BE8C",'#B48EAD'),name = ' ',labels = c("Control",'Drought', "Heat"))+
   theme(
-    #plot.title = element_text(color="black", size=5, face="bold"),
     axis.title.x = element_text(color="black", size=15),
     axis.title.y = element_text(color="black", size=15),
     legend.text = element_text(color = 'black', size = 20)
   )+
-  #gghighlight::gghighlight(label_key = Level, label_params = list(size = 8))+#, MINUTES %in% 60:90)+
   theme(
     axis.text.y=element_text(size = 12),
     axis.text.x = element_text(size = 12),
     axis.ticks.y=element_blank())+
-  #ylim(0.3,0.6)+
-  #xlim(15,135)+
-  #geom_curve(aes(x = 1, y = 1, xend =2, yend =2, colour = "curve"))+
-  #annotate("text", x = 4, y = 25, label = "Some text")
-  # annotate(
-  #   geom = "curve", x = 90, y = 0.55, xend = 100, yend = 0.42, 
-  #   curvature = .4, arrow = arrow(length = unit(3, "mm"))
-  # ) +
-  # annotate(geom = "text", x = 103, y = 0.42, label = "Second Wave", hjust = "left",size = 6)+
-  # annotate(
-  #   geom = "curve", x = 60, y = 0.59, xend = 50, yend = 0.62, 
-#   curvature = .4, arrow = arrow(length = unit(3, "mm"))
-# ) +
-# annotate(geom = "text", x = 51, y = 0.63, label = "First Wave", hjust = "left",size = 6)+
 theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
       panel.background = element_blank())+
 theme(aspect.ratio=1/1)
