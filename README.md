@@ -1,4 +1,4 @@
-# temporalbias
+
 Repository code and data for 
 
 Cai, Haoran, and David L. Des Marais. "Revisiting regulatory coherence: accounting for temporal bias in plant gene co‐expression analyses." (2023). 
