@@ -1,4 +1,4 @@
-## Revisiting regulatory coherence: accounting for temporal bias in plant gene co‐expression analyses##
+## Revisiting regulatory coherence: accounting for temporal bias in plant gene co‐expression analyses
 
 Repository code and data for 
 
